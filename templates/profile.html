@@ -20,14 +20,13 @@
             <section class="available">
               <h4 class="mb-4 mt-5">Записаться на пробный урок</h4>
               {% for keys, values in teacher.free.items() %}
-
-              <h6 class="mt-4">{{ keys }}</h6>
+              <h6 class="mt-4">{{ days[keys] }}</h6>
               {% for key, value in values.items()%}
               {% if value == True %}
-              <a href="#" class="btn btn-outline-success mr-2">{{ key }}</a>
+              <a href="/booking/{{ teacher.id }}/{{ keys }}/{% if key|length == 4 %}{{ key[:1] }}{% else %}{{ key[:2] }}{% endif %}" class="btn btn-outline-success mr-2">{{ key }}</a>
               {% endif %}
               {% endfor %}
-            {% endfor %}
+              {% endfor %}
             </section>
 
           </div>
@@ -36,4 +35,5 @@
 
     </div>
   </main>
+{% include 'footer.html' %}
 {% endblock %}
