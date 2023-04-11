@@ -1,5 +1,7 @@
 from flask import Flask, render_template, abort, request
 import json
+import random
+
 from data import days
 
 app = Flask(__name__)
@@ -8,17 +10,33 @@ app.config.update(DEBUG=True)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    with open('data_base_goals.json', 'r', encoding='utf-8') as f:
+        all_goals = json.load(f)
+    with open('data_base_teachers.json', 'r', encoding='utf-8') as f:
+        all_teachers = json.load(f)
+    random_teachers = [random.choices(all_teachers, k=6)]
+    return render_template('index.html', goals=all_goals, rand_teachers=random_teachers[0])
 
 
 @app.route('/all')
 def teachers():
-    return render_template('all.html')
+    with open('data_base_teachers.json', 'r', encoding='utf-8') as f:
+        all_teachers = json.load(f)
+    return render_template('all.html', all_teachers=all_teachers)
 
 
 @app.route('/goals/<goal>')
 def teach_goals(goal):
-    return render_template('goal.html', goal=goal)
+    with open('data_base_goals.json', 'r', encoding='utf-8') as f:
+        all_goals = json.load(f)
+    with open('data_base_teachers.json', 'r', encoding='utf8') as f:
+        all_teachers = json.load(f)
+    teachers_dict = []
+    for values in all_teachers:
+        for goals in values['goals']:
+            if goal in goals:
+                teachers_dict.append(values)
+    return render_template('goal.html', goal=goal, teachers=teachers_dict, goals=all_goals)
 
 
 @app.route('/profiles/<int:id_t>')
@@ -71,8 +89,8 @@ def bookings_done():
         client_time = request.form['clientTime']
         client_teacher = request.form['clientTeacher']
         client_order = {'username': username, 'user_phone': user_phone,
-                       'clientWeekday': client_weekday, 'clientTime': client_time,
-                       'clientTeacher': client_teacher}
+                        'clientWeekday': client_weekday, 'clientTime': client_time,
+                        'clientTeacher': client_teacher}
         with open('booking.json', 'a', encoding='utf-8') as f:
             json.dump(client_order, f)
         return render_template('booking_done.html',
