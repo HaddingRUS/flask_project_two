@@ -1,6 +1,6 @@
 from flask import Flask, render_template, abort, request
 from flask_wtf import FlaskForm
-from wtforms import StringField, HiddenField, SubmitField
+from wtforms import StringField, HiddenField, SubmitField, validators
 import json
 import random
 import config as conf
@@ -12,8 +12,10 @@ app.config.from_object(conf)
 
 
 class UserForm(FlaskForm):
-    username = StringField('Вас зовут')
-    user_phone = StringField('Ваш телефон')
+    username = StringField('Вас зовут', [validators.InputRequired(message='Введите имя'),
+                                         validators.Length(min=3, max=16, message='Неправильная длина имени')])
+    user_phone = StringField('Ваш телефон', [validators.InputRequired(message='Введите номер телефона'),
+                                             validators.Length(min=11, max=12, message='Неверный номер')])
     teach_week = HiddenField('Неделя')
     teach_time = HiddenField('Время')
     teacher_id = HiddenField('id преподавателя')
@@ -81,39 +83,35 @@ def requests_done():
         return render_template('request_done.html')
 
 
-@app.route('/booking/<int:id_t>/<week>/<time>')
+@app.route('/booking/<int:id_t>/<week>/<time>', methods=['POST', 'GET'])
 def bookings(id_t, week, time):
     form = UserForm()
-    with open('data_base_teachers.json', 'r', encoding='utf-8') as f:
-        all_teachers = json.load(f)
-    for teacher in all_teachers:
-        if teacher['id'] == id_t:
-            id_teacher = teacher
-            return render_template('booking.html', week=week, time=time,
-                                   name=id_teacher['name'], days=days,
-                                   id_t=id_t, form=form)
-    abort(404)
-
-
-@app.route('/booking_done/', methods=['POST'])
-def bookings_done():
     if request.method == 'POST':
-        form = UserForm()
-        username = form.username.data
-        user_phone = form.user_phone.data
-        client_weekday = form.teach_week.data
-        client_time = form.teach_time.data
-        client_teacher = form.teacher_id.data
-        client_order = {'username': username, 'user_phone': user_phone,
-                        'clientWeekday': client_weekday, 'clientTime': client_time,
-                        'clientTeacher': client_teacher}
-        with open('booking.json', 'a', encoding='utf-8') as f:
-            json.dump(client_order, f)
-        return render_template('booking_done.html',
-                               username=username, date=days[client_weekday],
-                               time=client_time, phone=user_phone)
+        if form.validate():
+            username = form.username.data
+            user_phone = form.user_phone.data
+            client_weekday = form.teach_week.data
+            client_time = form.teach_time.data
+            client_teacher = form.teacher_id.data
+            client_order = {'username': username, 'user_phone': user_phone,
+                            'clientWeekday': client_weekday, 'clientTime': client_time,
+                            'clientTeacher': client_teacher}
+            with open('booking.json', 'a', encoding='utf-8') as f:
+                json.dump(client_order, f)
+            return render_template('booking_done.html',
+                                   username=username, date=days[client_weekday],
+                                   time=client_time, phone=user_phone)
     elif request.method == 'GET':
-        return 'GET запрос'
+        with open('data_base_teachers.json', 'r', encoding='utf-8') as f:
+            all_teachers = json.load(f)
+        for teacher in all_teachers:
+            if teacher['id'] == id_t:
+                id_teacher = teacher
+                return render_template('booking.html', week=week, time=time,
+                                       name=id_teacher['name'], days=days,
+                                       id_t=id_t, form=form)
+    else:
+        abort(404)
 
 
 @app.errorhandler(404)
