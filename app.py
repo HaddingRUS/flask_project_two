@@ -1,11 +1,23 @@
 from flask import Flask, render_template, abort, request
+from flask_wtf import FlaskForm
+from wtforms import StringField, HiddenField, SubmitField
 import json
 import random
+import config as conf
 
 from data import days
 
 app = Flask(__name__)
-app.config.update(DEBUG=True)
+app.config.from_object(conf)
+
+
+class UserForm(FlaskForm):
+    username = StringField('Вас зовут')
+    user_phone = StringField('Ваш телефон')
+    teach_week = HiddenField('Неделя')
+    teach_time = HiddenField('Время')
+    teacher_id = HiddenField('id преподавателя')
+    submit = SubmitField('Записаться на пробный урок')
 
 
 @app.route('/')
@@ -71,23 +83,27 @@ def requests_done():
 
 @app.route('/booking/<int:id_t>/<week>/<time>')
 def bookings(id_t, week, time):
+    form = UserForm()
     with open('data_base_teachers.json', 'r', encoding='utf-8') as f:
         all_teachers = json.load(f)
     for teacher in all_teachers:
         if teacher['id'] == id_t:
             id_teacher = teacher
-            return render_template('booking.html', week=week, time=time, name=id_teacher['name'], days=days, id_t=id_t)
+            return render_template('booking.html', week=week, time=time,
+                                   name=id_teacher['name'], days=days,
+                                   id_t=id_t, form=form)
     abort(404)
 
 
 @app.route('/booking_done/', methods=['POST'])
 def bookings_done():
     if request.method == 'POST':
-        username = request.form['clientName']
-        user_phone = request.form['clientPhone']
-        client_weekday = request.form['clientWeekday']
-        client_time = request.form['clientTime']
-        client_teacher = request.form['clientTeacher']
+        form = UserForm()
+        username = form.username.data
+        user_phone = form.user_phone.data
+        client_weekday = form.teach_week.data
+        client_time = form.teach_time.data
+        client_teacher = form.teacher_id.data
         client_order = {'username': username, 'user_phone': user_phone,
                         'clientWeekday': client_weekday, 'clientTime': client_time,
                         'clientTeacher': client_teacher}
